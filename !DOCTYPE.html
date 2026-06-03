@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>100% Standalone Precision Kanji Engine v5.1</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Poppins:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;700&family=Yuji+Boku&display=swap');
+        body { font-family: 'Poppins', 'Noto Sans JP', sans-serif; }
+        /* 書道用フォント（游字 墨） */
+        .font-calligraphy { font-family: 'Yuji Boku', serif; }
+        
+        /* カスタムスクロールバー */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 text-slate-100 min-h-screen flex flex-col selection:bg-indigo-500/30 selection:text-indigo-200">
+
+    <header class="bg-slate-900/80 backdrop-blur-md border-b border-white/10 px-6 py-4 flex justify-between items-center shadow-2xl sticky top-0 z-50">
+        <div>
+            <h1 class="text-2xl font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400 flex items-center gap-3">
+                🎯 Precision Kanji Engine 
+                <span class="text-[10px] bg-gradient-to-r from-amber-500 to-orange-500 text-white px-2.5 py-1 rounded-full shadow-lg tracking-widest uppercase font-black">v5.1 Brush</span>
+            </h1>
+            <p class="text-xs text-slate-400 mt-1 font-medium">Create your authentic Japanese name with deep meanings.</p>
+        </div>
+    </header>
+
+    <main class="max-w-6xl w-full mx-auto p-4 md:p-8 flex-grow grid grid-cols-1 gap-8">
+        
+        <!-- STEP 1: Input -->
+        <div class="bg-slate-800/40 backdrop-blur-sm border border-white/10 rounded-3xl p-6 md:p-8 shadow-xl relative overflow-hidden group focus-within:border-indigo-500/50 transition-colors duration-500">
+            <div class="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-indigo-500 to-purple-500"></div>
+            <label class="block text-xs font-bold text-indigo-300 uppercase tracking-widest mb-3">1. Enter Your Name</label>
+            <input type="text" id="nameInput" placeholder="e.g. BENJAMIN, べんじゃみん" maxlength="30"
+                   class="w-full text-2xl px-6 py-4 bg-slate-950/50 border border-slate-700/50 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/50 font-bold tracking-widest text-white shadow-inner placeholder:text-slate-600 transition-all">
+        </div>
+
+        <!-- STEP 2: Segmenter -->
+        <div class="bg-slate-800/40 backdrop-blur-sm border border-white/10 rounded-3xl p-6 md:p-8 shadow-xl relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-blue-500 to-cyan-500"></div>
+            <h2 class="text-xs font-bold text-blue-300 uppercase tracking-widest mb-4">2. Adjust Syllables (Optional)</h2>
+            <div id="dividerWorkspace" class="flex flex-wrap items-center justify-center gap-y-4 bg-slate-900/50 p-8 rounded-2xl border border-slate-700/50 min-h-[6rem] shadow-inner">
+                <p class="text-slate-500 text-sm font-medium tracking-wide">Type a name above to activate.</p>
+            </div>
+        </div>
+
+        <!-- STEP 3: Selection -->
+        <div class="bg-slate-800/40 backdrop-blur-sm border border-white/10 rounded-3xl p-6 md:p-8 shadow-xl relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-emerald-500 to-teal-500"></div>
+            <h2 class="text-xs font-bold text-emerald-300 uppercase tracking-widest mb-6">3. Craft Your Identity</h2>
+            <div id="characterBlocks" class="space-y-8">
+                <p class="text-slate-500 text-sm text-center py-8 font-medium tracking-wide">Kanji candidates will appear here.</p>
+            </div>
+        </div>
+
+        <!-- FINAL RESULT (書道風アートボード) -->
+        <div class="bg-[#111111] border border-stone-800 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.6)] p-10 text-center relative overflow-hidden border-t-2 border-t-stone-700">
+            <!-- 和風の繊細な透かしテクスチャ効果 -->
+            <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/padded-cells.png')] opacity-5 mix-blend-overlay"></div>
+            
+            <h2 class="text-[10px] font-bold text-stone-500 uppercase tracking-[0.3em] mb-4 relative z-10 flex items-center justify-center gap-3">
+                <span class="w-6 h-[1px] bg-stone-800"></span>
+                The Brush Masterpiece
+                <span class="w-6 h-[1px] bg-stone-800"></span>
+            </h2>
+            
+            <!-- 書道名表示エリア (落款付き) -->
+            <div class="relative inline-flex items-center justify-center my-8 min-h-[7rem] px-12 py-4 border border-stone-900/40 bg-gradient-to-b from-stone-900/20 to-transparent rounded-2xl">
+                <div id="resultName" class="text-6xl md:text-7xl font-normal text-stone-100 font-calligraphy tracking-[0.25em] pl-[0.25em] drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] relative z-10">
+                </div>
+                <!-- デジタル落款（朱印） -->
+                <div id="hankoStamp" class="absolute -right-2 -bottom-1 w-10 h-10 border-2 border-red-700/80 bg-red-900/10 rounded flex items-center justify-center text-[10px] font-bold font-serif text-red-500/90 tracking-tighter select-none rotate-6 shadow-[0_0_10px_rgba(220,38,38,0.15)] opacity-0 transition-opacity duration-500">
+                    正印
+                </div>
+            </div>
+
+            <div class="flex justify-center gap-4 relative z-10 mt-4">
+                <button onclick="copyToClipboard()" id="copyBtn" class="flex items-center gap-2 bg-stone-800 hover:bg-stone-700 border border-stone-700 text-stone-200 px-6 py-3 rounded-xl text-sm transition-all duration-300 font-bold shadow-md hover:-translate-y-0.5 cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                    <span>Copy Name</span>
+                </button>
+                <button onclick="clearSelection()" class="bg-transparent hover:bg-stone-900 border border-stone-800 text-stone-500 hover:text-stone-400 px-6 py-3 rounded-xl text-sm transition-all duration-300 font-bold cursor-pointer hover:-translate-y-0.5">
+                    Reset
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="text-center py-6 text-xs text-slate-500 font-mono">
+        Precision Kanji Engine v5.1 © 2026
+    </footer>
+
+    <script>
+        // 漢字データ
+        const KANJI_DICT = {
+            'あ': [{k:'亜', m:'Next'}, {k:'明', m:'Bright'}, {k:'有', m:'Exist'}, {k:'安', m:'Peace'}, {k:'愛', m:'Love'}, {k:'朝', m:'Morning'}, {k:'藍', m:'Indigo'}, {k:'梓', m:'Catalpa'}],
+            'い': [{k:'伊', m:'That'}, {k:'依', m:'Rely'}, {k:'意', m:'Mind'}, {k:'維', m:'Tie'}, {k:'衣', m:'Gown'}, {k:'唯', m:'Only'}, {k:'一', m:'One'}],
+            'う': [{k:'宇', m:'Space'}, {k:'羽', m:'Wing'}, {k:'佑', m:'Help'}, {k:'優', m:'Gentle'}, {k:'有', m:'Exist'}, {k:'湧', m:'Gush'}, {k:'卯', m:'Rabbit'}],
+            'え': [{k:'恵', m:'Bless'}, {k:'栄', m:'Glory'}, {k:'永', m:'Eternal'}, {k:'瑛', m:'Crystal'}, {k:'江', m:'River'}, {k:'枝', m:'Branch'}, {k:'衛', m:'Guard'}],
+            'お': [{k:'旺', m:'Vigorous'}, {k:'央', m:'Center'}, {k:'音', m:'Sound'}, {k:'大', m:'Big'}, {k:'織', m:'Weave'}, {k:'緒', m:'Cord'}, {k:'桜', m:'Cherry'}],
+            'か': [{k:'香', m:'Scent'}, {k:'華', m:'Flower'}, {k:'佳', m:'Good'}, {k:'加', m:'Add'}, {k:'夏', m:'Summer'}, {k:'嘉', m:'Praise'}, {k:'歌', m:'Song'}, {k:'果', m:'Fruit'}],
+            'き': [{k:'輝', m:'Shine'}, {k:'希', m:'Hope'}, {k:'季', m:'Season'}, {k:'記', m:'Record'}, {k:'貴', m:'Noble'}, {k:'紀', m:'Chronicle'}, {k:'樹', m:'Tree'}, {k:'喜', m:'Joy'}],
+            'く': [{k:'空', m:'Sky'}, {k:'久', m:'Long time'}, {k:'来', m:'Come'}, {k:'駆', m:'Gallop'}, {k:'陸', m:'Land'}, {k:'紅', m:'Crimson'}, {k:'九', m:'Nine'}, {k:'功', m:'Merit'}],
+            'け': [{k:'健', m:'Health'}, {k:'圭', m:'Jewel'}, {k:'啓', m:'Open'}, {k:'恵', m:'Bless'}, {k:'景', m:'View'}, {k:'慶', m:'Celebrate'}, {k:'賢', m:'Wise'}, {k:'介', m:'Shell'}],
+            'こ': [{k:'航', m:'Sail'}, {k:'煌', m:'Gleam'}, {k:'高', m:'High'}, {k:'幸', m:'Happy'}, {k:'光', m:'Light'}, {k:'琥', m:'Amber'}, {k:'心', m:'Heart'}, {k:'子', m:'Child'}],
+            'さ': [{k:'咲', m:'Bloom'}, {k:'紗', m:'Silk'}, {k:'早', m:'Early'}, {k:'桜', m:'Cherry'}, {k:'彩', m:'Color'}, {k:'颯', m:'Wind'}, {k:'佐', m:'Help'}, {k:'沙', m:'Sand'}],
+            'し': [{k:'志', m:'Will'}, {k:'詩', m:'Poem'}, {k:'司', m:'Rule'}, {k:'史', m:'History'}, {k:'至', m:'Arrive'}, {k:'梓', m:'Catalpa'}, {k:'信', m:'Trust'}, {k:'芯', m:'Core'}],
+            'す': [{k:'彗', m:'Comet'}, {k:'翠', m:'Emerald'}, {k:'崇', m:'Revere'}, {k:'澄', m:'Clear'}, {k:'昴', m:'Pleiades'}, {k:'寿', m:'Longevity'}, {k:'涼', m:'Cool'}, {k:'周', m:'Lap'}],
+            'せ': [{k:'誠', m:'Truth'}, {k:'星', m:'Star'}, {k:'聖', m:'Holy'}, {k:'世', m:'World'}, {k:'清', m:'Pure'}, {k:'瀬', m:'Current'}, {k:'晴', m:'Clear sky'}, {k:'成', m:'Become'}],
+            'そ': [{k:'創', m:'Create'}, {k:'聡', m:'Wise'}, {k:'蒼', m:'Blue'}, {k:'想', m:'Idea'}, {k:'爽', m:'Refreshing'}, {k:'奏', m:'Play music'}, {k:'壮', m:'Grand'}, {k:'宗', m:'Origin'}],
+            'た': [{k:'汰', m:'Select'}, {k:'太', m:'Thick'}, {k:'大', m:'Big'}, {k:'拓', m:'Clear land'}, {k:'多', m:'Many'}, {k:'泰', m:'Peace'}, {k:'匠', m:'Master'}, {k:'巧', m:'Skill'}],
+            'ち': [{k:'智', m:'Wisdom'}, {k:'知', m:'Know'}, {k:'千', m:'Thousand'}, {k:'地', m:'Earth'}, {k:'茅', m:'Mino'}, {k:'稚', m:'Young'}, {k:'治', m:'Cure'}, {k:'池', m:'Pond'}],
+            'つ': [{k:'津', m:'Harbor'}, {k:'都', m:'Metropolis'}, {k:'翼', m:'Wing'}, {k:'月', m:'Moon'}, {k:'通', m:'Pass'}, {k:'弦', m:'Bowstring'}, {k:'鶴', m:'Crane'}, {k:'集', m:'Gather'}],
+            'て': [{k:'哲', m:'Philosophy'}, {k:'天', m:'Heaven'}, {k:'徹', m:'Pierce'}, {k:'輝', m:'Shine'}, {k:'帝', m:'Emperor'}, {k:'照', m:'Shine'}, {k:'手', m:'Hand'}, {k:'泰', m:'Peace'}],
+            'と': [{k:'翔', m:'Fly'}, {k:'斗', m:'Dipper'}, {k:'登', m:'Climb'}, {k:'飛', m:'Fly'}, {k:'都', m:'Metropolis'}, {k:'冬', m:'Winter'}, {k:'透', m:'Clear'}, {k:'刀', m:'Sword'}],
+            'な': [{k:'菜', m:'Greens'}, {k:'奈', m:'Nara'}, {k:'那', m:'What'}, {k:'名', m:'Name'}, {k:'凪', m:'Calm'}, {k:'和', m:'Peace'}, {k:'南', m:'South'}, {k:'夏', m:'Summer'}],
+            'に': [{k:'仁', m:'Virtue'}, {k:'新', m:'New'}, {k:'二', m:'Two'}, {k:'虹', m:'Rainbow'}, {k:'丹', m:'Red'}, {k:'荷', m:'Load'}, {k:'日', m:'Sun'}],
+            'ぬ': [{k:'温', m:'Warm'}, {k:'奴', m:'Fellow'}, {k:'沼', m:'Swamp'}, {k:'貫', m:'Pierce'}, {k:'布', m:'Cloth'}, {k:'主', m:'Master'}, {k:'努', m:'Effort'}, {k:'留', m:'Stay'}],
+            'ね': [{k:'寧', m:'Polite'}, {k:'音', m:'Sound'}, {k:'嶺', m:'Peak'}, {k:'念', m:'Thought'}, {k:'根', m:'Root'}, {k:'祢', m:'Ancestral'}, {k:'練', m:'Practice'}, {k:'然', m:'Nature'}],
+            'の': [{k:'乃', m:'From'}, {k:'伸', m:'Stretch'}, {k:'希', m:'Hope'}, {k:'野', m:'Field'}, {k:'能', m:'Ability'}, {k:'濃', m:'Dark'}, {k:'暖', m:'Warm'}, {k:'望', m:'Hope'}],
+            'は': [{k:'春', m:'Spring'}, {k:'晴', m:'Clear'}, {k:'波', m:'Wave'}, {k:'葉', m:'Leaf'}, {k:'羽', m:'Wing'}, {k:'巴', m:'Comma'}, {k:'破', m:'Break'}, {k:'覇', m:'Supreme'}],
+            'ひ': [{k:'飛', m:'Fly'}, {k:'陽', m:'Sun'}, {k:'灯', m:'Lamp'}, {k:'緋', m:'Scarlet'}, {k:'比', m:'Compare'}, {k:'光', m:'Light'}, {k:'日', m:'Sun'}, {k:'火', m:'Fire'}],
+            'ふ': [{k:'風', m:'Wind'}, {k:'楓', m:'Maple'}, {k:'芙', m:'Lotus'}, {k:'富', m:'Wealth'}, {k:'布', m:'Cloth'}, {k:'普', m:'General'}, {k:'歩', m:'Walk'}, {k:'譜', m:'Score'}],
+            'へ': [{k:'平', m:'Peace'}, {k:'兵', m:'Soldier'}, {k:'経', m:'Pass'}, {k:'丙', m:'Third'}, {k:'碧', m:'Blue'}, {k:'壁', m:'Wall'}, {k:'遍', m:'Everywhere'}, {k:'辺', m:'Side'}],
+            'ほ': [{k:'歩', m:'Walk'}, {k:'星', m:'Star'}, {k:'帆', m:'Sail'}, {k:'穂', m:'Grain'}, {k:'朋', m:'Friend'}, {k:'法', m:'Law'}, {k:'宝', m:'Treasure'}, {k:'豊', m:'Abundant'}],
+            'ま': [{k:'真', m:'True'}, {k:'舞', m:'Dance'}, {k:'麻', m:'Hemp'}, {k:'摩', m:'Rub'}, {k:'万', m:'10K'}, {k:'満', m:'Full'}, {k:'茉', m:'Jasmine'}, {k:'馬', m:'Horse'}],
+            'み': [{k:'美', m:'Beauty'}, {k:'未', m:'Not yet'}, {k:'海', m:'Sea'}, {k:'実', m:'Truth'}, {k:'充', m:'Fill'}, {k:'魅', m:'Charm'}, {k:'巳', m:'Snake'}, {k:'弥', m:'Increase'}],
+            'む': [{k:'睦', m:'Friendly'}, {k:'夢', m:'Dream'}, {k:'無', m:'Nothing'}, {k:'武', m:'Military'}, {k:'霧', m:'Fog'}, {k:'六', m:'Six'}, {k:'麦', m:'Wheat'}, {k:'向', m:'Face'}],
+            'め': [{k:'芽', m:'Sprout'}, {k:'恵', m:'Bless'}, {k:'愛', m:'Love'}, {k:'明', m:'Bright'}, {k:'銘', m:'Brand'}, {k:'目', m:'Eye'}, {k:'女', m:'Woman'}, {k:'萌', m:'Bud'}],
+            'も': [{k:'桃', m:'Peach'}, {k:'百', m:'Hundred'}, {k:'茂', m:'Overgrow'}, {k:'望', m:'Hope'}, {k:'最', m:'Most'}, {k:'守', m:'Protect'}, {k:'森', m:'Forest'}, {k:'物', m:'Thing'}],
+            'ら': [{k:'良', m:'Good'}, {k:'羅', m:'Silk'}, {k:'頼', m:'Rely'}, {k:'雷', m:'Thunder'}, {k:'藍', m:'Indigo'}, {k:'楽', m:'Comfort'}, {k:'嵐', m:'Storm'}, {k:'来', m:'Come'}],
+            'り': [{k:'理', m:'Reason'}, {k:'莉', m:'Jasmine'}, {k:'里', m:'Village'}, {k:'梨', m:'Pear'}, {k:'璃', m:'Lapis'}, {k:'利', m:'Profit'}, {k:'凛', m:'Dignified'}, {k:'吏', m:'Officer'}],
+            'る': [{k:'琉', m:'Lapis'}, {k:'瑠', m:'Lapis'}, {k:'流', m:'Flow'}, {k:'留', m:'Stay'}, {k:'類', m:'Type'}, {k:'涙', m:'Tear'}, {k:'累', m:'Accumulate'}, {k:'月', m:'Moon'}],
+            'れ': [{k:'怜', m:'Wise'}, {k:'玲', m:'Jewel'}, {k:'麗', m:'Beautiful'}, {k:'礼', m:'Manner'}, {k:'蓮', m:'Lotus'}, {k:'零', m:'Zero'}, {k:'令', m:'Order'}, {k:'嶺', m:'Peak'}],
+            'ろ': [{k:'朗', m:'Bright'}, {k:'路', m:'Path'}, {k:'露', m:'Dew'}, {k:'呂', m:'Spine'}, {k:'炉', m:'Hearth'}, {k:'狼', m:'Wolf'}, {k:'浪', m:'Wave'}, {k:'老', m:'Old'}],
+            'わ': [{k:'和', m:'Peace'}, {k:'輪', m:'Ring'}, {k:'羽', m:'Wing'}, {k:'環', m:'Ring'}, {k:'我', m:'Self'}, {k:'倭', m:'Yamato'}, {k:'話', m:'Talk'}, {k:'渡', m:'Cross'}],
+            'ん': [{k:'運', m:'Luck'}, {k:'恩', m:'Grace'}, {k:'仁', m:'Virtue'}, {k:'寧', m:'Polite'}, {k:'音', m:'Sound'}, {k:'暖', m:'Warm'}, {k:'念', m:'Thought'}, {k:'穏', m:'Calm'}],
+            'が': [{k:'雅', m:'Elegant'}, {k:'賀', m:'Congrats'}, {k:'我', m:'Self'}, {k:'芽', m:'Sprout'}, {k:'画', m:'Picture'}],
+            'ぎ': [{k:'義', m:'Justice'}, {k:'銀', m:'Silver'}, {k:'技', m:'Skill'}, {k:'宜', m:'Good'}],
+            'ぐ': [{k:'具', m:'Tool'}, {k:'愚', m:'Foolish'}, {k:'弘', m:'Vast'}, {k:'空', m:'Sky'}],
+            'げ': [{k:'現', m:'Present'}, {k:'元', m:'Origin'}, {k:'厳', m:'Strict'}, {k:'源', m:'Source'}],
+            'ご': [{k:'豪', m:'Grand'}, {k:'悟', m:'Perceive'}, {k:'剛', m:'Sturdy'}, {k:'五', m:'Five'}],
+            'ざ': [{k:'座', m:'Seat'}, {k:'蔵', m:'Store'}, {k:'沙', m:'Sand'}, {k:'佐', m:'Help'}],
+            'じ': [{k:'慈', m:'Mercy'}, {k:'治', m:'Cure'}, {k:'時', m:'Time'}, {k:'路', m:'Path'}, {k:'司', m:'Rule'}, {k:'史', m:'History'}],
+            'ず': [{k:'瑞', m:'Auspicious'}, {k:'頭', m:'Head'}, {k:'図', m:'Map'}, {k:'寿', m:'Longevity'}],
+            'ぜ': [{k:'是', m:'Right'}, {k:'善', m:'Good'}, {k:'星', m:'Star'}, {k:'世', m:'World'}],
+            'ぞ': [{k:'蔵', m:'Store'}, {k:'造', m:'Create'}, {k:'贈', m:'Gift'}, {k:'象', m:'Elephant'}],
+            'だ': [{k:'大', m:'Big'}, {k:'太', m:'Thick'}, {k:'代', m:'Era'}, {k:'田', m:'Field'}],
+            'で': [{k:'出', m:'Exit'}, {k:'手', m:'Hand'}, {k:'天', m:'Heaven'}, {k:'伝', m:'Transmit'}],
+            'ど': [{k:'道', m:'Way'}, {k:'堂', m:'Hall'}, {k:'動', m:'Move'}, {k:'度', m:'Degree'}],
+            'ば': [{k:'馬', m:'Horse'}, {k:'場', m:'Place'}, {k:'刃', m:'Blade'}, {k:'婆', m:'Old woman'}, {k:'芭', m:'Banana'}, {k:'羽', m:'Wing'}, {k:'波', m:'Wave'}, {k:'芳', m:'Fragrant'}],
+            'び': [{k:'美', m:'Beauty'}, {k:'微', m:'Delicate'}, {k:'敏', m:'Agile'}, {k:'眉', m:'Eyebrow'}, {k:'備', m:'Provide'}, {k:'琵', m:'Lute'}],
+            'ぶ': [{k:'武', m:'Military'}, {k:'歩', m:'Walk'}, {k:'舞', m:'Dance'}, {k:'豊', m:'Abundant'}],
+            'べ': [{k:'辺', m:'Side'}, {k:'平', m:'Flat'}, {k:'兵', m:'Soldier'}, {k:'勉', m:'Diligence'}, {k:'弁', m:'Speech'}],
+            'ぼ': [{k:'望', m:'Hope'}, {k:'星', m:'Star'}, {k:'暮', m:'Dusk'}, {k:'慕', m:'Yearn'}],
+            'ぱ': [{k:'羽', m:'Wing'}, {k:'晴', m:'Clear'}, {k:'波', m:'Wave'}],
+            'ぴ': [{k:'灯', m:'Lamp'}, {k:'光', m:'Light'}, {k:'輝', m:'Shine'}],
+            'ぷ': [{k:'風', m:'Wind'}, {k:'歩', m:'Walk'}, {k:'富', m:'Wealth'}],
+            'ぺ': [{k:'平', m:'Flat'}, {k:'辺', m:'Side'}, {k:'片', m:'Piece'}],
+            'ぽ': [{k:'歩', m:'Walk'}, {k:'星', m:'Star'}, {k:'帆', m:'Sail'}],
+            'きゃ': [{k:'輝', m:'Shine'}, {k:'喜', m:'Joy'}], 'きゅ': [{k:'久', m:'Long'}, {k:'九', m:'Nine'}], 'きょ': [{k:'巨', m:'Huge'}, {k:'許', m:'Permit'}],
+            'しゃ': [{k:'沙', m:'Sand'}, {k:'写', m:'Copy'}, {k:'車', m:'Car'}], 'しゅ': [{k:'朱', m:'Vermilion'}, {k:'守', m:'Protect'}, {k:'珠', m:'Pearl'}, {k:'修', m:'Master'}, {k:'秋', m:'Autumn'}], 'しょ': [{k:'初', m:'First'}, {k:'書', m:'Write'}, {k:'緒', m:'Cord'}],
+            'じゃ': [{k:'若', m:'Young'}, {k:'樹', m:'Tree'}, {k:'寿', m:'Long life'}, {k:'純', m:'Pure'}, {k:'祥', m:'Auspicious'}, {k:'珠', m:'Pearl'}, {k:'充', m:'Fill'}, {k:'慈', m:'Mercy'}], 'じゅ': [{k:'樹', m:'Tree'}, {k:'寿', m:'Long life'}, {k:'珠', m:'Pearl'}, {k:'潤', m:'Moist'}], 'じょ': [{k:'叙', m:'Describe'}, {k:'如', m:'Like'}, {k:'助', m:'Help'}],
+            'ちゃ': [{k:'茶', m:'Tea'}], 'ちゅ': [{k:'中', m:'Center'}, {k:'宙', m:'Space'}, {k:'忠', m:'Loyal'}], 'ちょ': [{k:'千', m:'Thousand'}, {k:'緒', m:'Cord'}],
+            'りゅ': [{k:'流', m:'Flow'}, {k:'留', m:'Stay'}, {k:'琉', m:'Lapis'}, {k:'龍', m:'Dragon'}], 'りょ': [{k:'旅', m:'Trip'}, {k:'緑', m:'Green'}, {k:'良', m:'Good'}],
+            'ふぁ': [{k:'楓', m:'Maple'}, {k:'芳', m:'Fragrant'}, {k:'帆', m:'Sail'}, {k:'芙', m:'Lotus'}, {k:'風', m:'Wind'}], 'ふぃ': [{k:'飛', m:'Fly'}, {k:'菲', m:'Fragrant'}],
+            'あん': [{k:'安', m:'Peace'}, {k:'庵', m:'Hermit'}, {k:'杏', m:'Apricot'}, {k:'有', m:'Exist'}], 'いん': [{k:'院', m:'Inst.'}, {k:'印', m:'Seal'}, {k:'音', m:'Sound'}], 'うん': [{k:'運', m:'Luck'}, {k:'雲', m:'Cloud'}], 'えん': [{k:'縁', m:'Fate'}, {k:'苑', m:'Garden'}, {k:'円', m:'Circle'}], 'おん': [{k:'音', m:'Sound'}, {k:'温', m:'Warm'}, {k:'恩', m:'Grace'}],
+            'かん': [{k:'勘', m:'Intuition'}, {k:'歓', m:'Joy'}, {k:'寛', m:'Tolerant'}, {k:'幹', m:'Trunk'}, {k:'環', m:'Ring'}, {k:'貫', m:'Pierce'}], 'しん': [{k:'真', m:'True'}, {k:'伸', m:'Stretch'}, {k:'臣', m:'Retainer'}, {k:'信', m:'Trust'}, {k:'慎', m:'Prudent'}, {k:'心', m:'Heart'}, {k:'清', m:'Pure'}, {k:'深', m:'Deep'}, {k:'新', m:'New'}, {k:'進', m:'Advance'}], 'じん': [{k:'仁', m:'Virtue'}, {k:'陣', m:'Camp'}, {k:'神', m:'God'}, {k:'尋', m:'Inquire'}],
+            'せん': [{k:'千', m:'Thousand'}, {k:'仙', m:'Hermit'}, {k:'泉', m:'Spring'}, {k:'扇', m:'Fan'}], 'そん': [{k:'尊', m:'Noble'}, {k:'村', m:'Village'}], 'たん': [{k:'旦', m:'Dawn'}, {k:'丹', m:'Red'}, {k:'炭', m:'Charcoal'}], 'てん': [{k:'天', m:'Heaven'}, {k:'展', m:'Expand'}, {k:'典', m:'Code'}],
+            'なん': [{k:'南', m:'South'}, {k:'楠', m:'Camphor'}], 'にん': [{k:'仁', m:'Virtue'}, {k:'忍', m:'Endure'}], 'ねん': [{k:'念', m:'Thought'}, {k:'年', m:'Year'}],
+            'はん': [{k:'範', m:'Pattern'}, {k:'繁', m:'Prosper'}, {k:'半', m:'Half'}, {k:'伴', m:'Partner'}], 'ひん': [{k:'品', m:'Article'}, {k:'彬', m:'Refined'}], 'ふん': [{k:'文', m:'Writing'}, {k:'奮', m:'Stir'}], 'へん': [{k:'遍', m:'Everywhere'}, {k:'辺', m:'Side'}], 'ほん': [{k:'本', m:'Origin'}, {k:'誉', m:'Honor'}],
+            'まん': [{k:'万', m:'10K'}, {k:'満', m:'Full'}, {k:'漫', m:'Loose'}], 'みん': [{k:'敏', m:'Agile'}, {k:'明', m:'Bright'}, {k:'充', m:'Fill'}, {k:'実', m:'Truth'}, {k:'民', m:'People'}, {k:'眠', m:'Sleep'}], 'めん': [{k:'面', m:'Face'}, {k:'綿', m:'Cotton'}], 'もん': [{k:'門', m:'Gate'}, {k:'紋', m:'Crest'}, {k:'文', m:'Writing'}],
+            'らん': [{k:'蘭', m:'Orchid'}, {k:'藍', m:'Indigo'}, {k:'嵐', m:'Storm'}], 'りん': [{k:'凛', m:'Dignified'}, {k:'鈴', m:'Bell'}, {k:'林', m:'Woods'}], 'れん': [{k:'蓮', m:'Lotus'}, {k:'練', m:'Practice'}, {k:'連', m:'Connect'}, {k:'廉', m:'Pure'}], 'ろん': [{k:'論', m:'Theory'}, {k:'龍', m:'Dragon'}, {k:'竜', m:'Dragon'}, {k:'朗', m:'Bright'}],
+            'ばん': [{k:'万', m:'10K'}, {k:'伴', m:'Partner'}, {k:'番', m:'Number'}, {k:'盤', m:'Disk'}], 'びん': [{k:'敏', m:'Agile'}, {k:'瓶', m:'Bottle'}, {k:'便', m:'Conv.'}], 'ぶん': [{k:'文', m:'Writing'}, {k:'分', m:'Part'}], 'べん': [{k:'勉', m:'Diligence'}, {k:'弁', m:'Speech'}, {k:'紅', m:'Crimson'}], 'ぼん': [{k:'盆', m:'Tray'}, {k:'凡', m:'Ordinary'}],
+            'っか': [{k:'佳', m:'Good'}, {k:'香', m:'Scent'}, {k:'加', m:'Add'}, {k:'華', m:'Flower'}], 'っき': [{k:'輝', m:'Shine'}, {k:'貴', m:'Noble'}], 'っく': [{k:'駆', m:'Gallop'}, {k:'陸', m:'Land'}], 'っこ': [{k:'航', m:'Sail'}, {k:'幸', m:'Happy'}]
+        };
+
+        const SOUND_ALIASES = {
+            'でぃ': 'て', 'てぃ': 'て', 'どぅ': 'ど', 'とぅ': 'と',
+            'しぇ': 'せ', 'ちぇ': 'ち', 'じぇ': 'じ',
+            'ふぇ': 'へ', 'ふぉ': 'ほ', 'ゔぁ': 'ば', 'ゔぃ': 'び',
+            'ゔ': 'ぶ', 'ゔぇ': 'べ', 'ゔぉ': 'ぼ'
+        };
+
+        for (let key in SOUND_ALIASES) {
+            if (!KANJI_DICT[key]) {
+                KANJI_DICT[key] = KANJI_DICT[SOUND_ALIASES[key]] || [{k:'？', m:'Unknown'}];
+            }
+        }
+
+        const ROMAJI_TO_HIRA = {
+            'a': 'あ', 'i': 'い', 'u': 'う', 'e': 'え', 'o': 'お', 'ka': 'か', 'ki': 'き', 'ku': 'く', 'ke': 'け', 'ko': 'こ',
+            'sa': 'さ', 'shi': 'し', 'su': 'す', 'se': 'せ', 'so': 'そ', 'ta': 'た', 'chi': 'ち', 'tsu': 'つ', 'te': 'て', 'to': 'と',
+            'na': 'な', 'ni': 'に', 'nu': 'ぬ', 'ne': 'ね', 'no': 'の', 'ha': 'は', 'hi': 'ひ', 'fu': 'ふ', 'he': 'へ', 'ho': 'ほ',
+            'ma': 'ま', 'mi': 'み', 'mu': 'む', 'me': 'め', 'mo': 'も', 'ya': 'や', 'yu': 'ゆ', 'yo': 'よ',
+            'ra': 'ら', 'ri': 'り', 'ru': 'る', 're': 'れ', 'ro': 'ろ', 'wa': 'わ', 'wo': 'お', 'n': 'ん',
+            'ga': 'が', 'gi': 'ぎ', 'gu': 'ぐ', 'ge': 'げ', 'go': 'ご', 'za': 'ざ', 'ji': 'じ', 'zu': 'ず', 'ze': 'ぜ', 'zo': 'ぞ',
+            'da': 'だ', 'de': 'で', 'do': 'ど', 'ba': 'ば', 'bi': 'び', 'bu': 'ぶ', 'be': 'べ', 'bo': 'ぼ',
+            'pa': 'ぱ', 'pi': 'ぴ', 'pu': 'ぷ', 'pe': 'ぺ', 'po': 'ぽ',
+            'sha': 'しゃ', 'shu': 'しゅ', 'sho': 'しょ', 'shi': 'し', 'she': 'しぇ', 'cha': 'ちゃ', 'chu': 'ちゅ', 'cho': 'ちょ', 'chi': 'ち', 'che': 'ちぇ',
+            'ja': 'じゃ', 'ju': 'じゅ', 'jo': 'じょ', 'ji': 'じ', 'je': 'じぇ', 'fa': 'ふぁ', 'fi': 'ふぃ', 'fe': 'ふぇ', 'fo': 'ふぉ',
+            'va': 'ゔぁ', 'vi': 'ゔぃ', 've': 'ゔぇ', 'vo': 'ヴォ', 'ca': 'か', 'cu': 'く', 'co': 'こ', 'ci': 'し', 'ce': 'せ', 'cy': 'し',
+            'la': 'ら', 'li': 'り', 'lu': 'る', 'le': 'れ', 'lo': 'ろ', 'di': 'でぃ', 'ti': 'てぃ', 'du': 'どぅ', 'tu': 'とぅ',
+            'x': 'っくす', 'qua': 'くぁ', 'qui': 'くぃ', 'que': 'くぇ', 'quo': 'くぉ', 'qu': 'く'
+        };
+
+        const ISOLATED_CONSONANTS = {
+            'b': 'ぶ', 'c': 'く', 'd': 'ど', 'f': 'ふ', 'g': 'ぐ', 'h': 'ふ', 'j': 'じ', 'k': 'く', 'l': 'る', 'm': 'む',
+            'p': 'ぷ', 'r': 'る', 's': 'す', 't': 'と', 'v': 'ヴ', 'w': 'う', 'z': 'ず', 'x': 'っくす'
+        };
+
+        function englishToHiragana(word) {
+            word = word.toLowerCase();
+            let result = '';
+            let i = 0;
+            while (i < word.length) {
+                if (word[i].match(/[^\x00-\x7F]/)) {
+                    result += word[i];
+                    i += 1;
+                    continue;
+                }
+                if (i + 3 <= word.length && ROMAJI_TO_HIRA[word.substr(i, 3)]) {
+                    result += ROMAJI_TO_HIRA[word.substr(i, 3)]; i += 3; continue;
+                }
+                if (i + 2 <= word.length) {
+                    let double = word.substr(i, 2);
+                    if (ROMAJI_TO_HIRA[double]) { result += ROMAJI_TO_HIRA[double]; i += 2; continue; }
+                    if (double[0] === double[1] && !['a','e','i','o','u','n'].includes(double[0])) { result += 'っ'; i += 1; continue; }
+                    if (double === 'ck') { result += 'っ'; i += 1; continue; }
+                }
+                let single = word.substr(i, 1);
+                if (ROMAJI_TO_HIRA[single]) { result += ROMAJI_TO_HIRA[single]; i += 1; continue; }
+                if (ISOLATED_CONSONANTS[single]) { result += ISOLATED_CONSONANTS[single]; i += 1; continue; }
+                i += 1;
+            }
+            return result;
+        }
+
+        let currentName = "";
+        let splits = []; 
+        let selectedKanji = {}; 
+        let isComposing = false;
+
+        const nameInput = document.getElementById('nameInput');
+        const dividerWorkspace = document.getElementById('dividerWorkspace');
+        const characterBlocks = document.getElementById('characterBlocks');
+        const resultName = document.getElementById('resultName');
+        const hankoStamp = document.getElementById('hankoStamp');
+
+        nameInput.addEventListener('compositionstart', () => { isComposing = true; });
+        nameInput.addEventListener('compositionend', (e) => { 
+            isComposing = false; 
+            processInput(e.target.value); 
+        });
+        nameInput.addEventListener('input', (e) => {
+            if (!isComposing) processInput(e.target.value);
+        });
+
+        function processInput(rawText) {
+            let text = rawText.replace(/[Ａ-Ｚａ-ｚ]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0)).toLowerCase();
+            text = text.replace(/[ァ-ン]/g, s => String.fromCharCode(s.charCodeAt(0) - 0x60));
+            text = text.replace(/[^a-zぁ-んー]/g, '');
+
+            if (text !== currentName && text.length > 0) {
+                currentName = text;
+                splits = new Array(Math.max(0, text.length - 1)).fill(false);
+                selectedKanji = {};
+                renderSegmenter();
+                executePrecisionEngine();
+            } else if (text.length === 0) {
+                currentName = "";
+                dividerWorkspace.innerHTML = '<p class="text-slate-500 text-sm font-medium tracking-wide">Type a name above to activate.</p>';
+                characterBlocks.innerHTML = '<p class="text-slate-500 text-sm text-center py-8 font-medium tracking-wide">Kanji candidates will appear here.</p>';
+                resultName.textContent = '';
+                hankoStamp.classList.add('opacity-0');
+            }
+        }
+
+        function renderSegmenter() {
+            dividerWorkspace.textContent = '';
+            for (let i = 0; i < currentName.length; i++) {
+                const charEl = document.createElement('span');
+                charEl.className = 'w-12 h-14 bg-slate-800 border border-slate-600 rounded-xl flex items-center justify-center text-xl font-bold text-white shadow-md font-mono select-none uppercase transition-all duration-300 hover:border-blue-400 hover:shadow-blue-500/20';
+                charEl.textContent = currentName[i];
+                dividerWorkspace.appendChild(charEl);
+
+                if (i < currentName.length - 1) {
+                    const sepBtn = document.createElement('button');
+                    sepBtn.className = `w-5 h-14 mx-1.5 rounded-lg transition-all duration-300 flex items-center justify-center text-xs font-black cursor-pointer select-none group focus:outline-none focus:ring-2 focus:ring-blue-500/50 `;
+                    
+                    if (splits[i]) {
+                        sepBtn.className += ' bg-blue-500 text-white shadow-[0_0_10px_rgba(59,130,246,0.5)] border-blue-400';
+                        sepBtn.textContent = '┃';
+                    } else {
+                        sepBtn.className += ' bg-slate-800/50 text-slate-600 hover:bg-slate-700 hover:text-slate-300 border border-dashed border-slate-600';
+                        sepBtn.textContent = '⋮';
+                    }
+
+                    sepBtn.addEventListener('click', () => {
+                        splits[i] = !splits[i];
+                        renderSegmenter();
+                        executePrecisionEngine();
+                    });
+
+                    dividerWorkspace.appendChild(sepBtn);
+                }
+            }
+        }
+
+        function getSyllables(hira) {
+            if (KANJI_DICT[hira]) return [hira];
+            let result = [];
+            let i = 0;
+            while (i < hira.length) {
+                if (i + 1 < hira.length) {
+                    let twoChar = hira.substr(i, 2);
+                    if (KANJI_DICT[twoChar]) { result.push(twoChar); i += 2; continue; }
+                }
+                result.push(hira.substr(i, 1)); i += 1;
+            }
+            return result;
+        }
+
+        function executePrecisionEngine() {
+            characterBlocks.textContent = '';
+            let tokens = [];
+            let currentToken = currentName[0];
+
+            for (let i = 0; i < splits.length; i++) {
+                if (splits[i]) { tokens.push(currentToken); currentToken = currentName[i + 1]; }
+                else { currentToken += currentName[i + 1]; }
+            }
+            if (currentToken) tokens.push(currentToken);
+
+            tokens.forEach((token, index) => {
+                if (!selectedKanji[index]) selectedKanji[index] = {};
+
+                let hira = englishToHiragana(token);
+                let syllables = getSyllables(hira);
+
+                const block = document.createElement('div');
+                block.className = 'bg-slate-900/40 p-6 rounded-2xl border border-white/5 shadow-inner backdrop-blur-md relative overflow-hidden group';
+                
+                const title = document.createElement('h3');
+                title.className = 'font-bold text-sm text-emerald-400 mb-5 flex items-center gap-3 tracking-widest uppercase';
+                const badge = document.createElement('span');
+                badge.className = 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 px-2 py-0.5 rounded text-xs shadow-sm';
+                badge.textContent = `Block ${index + 1}`;
+                title.appendChild(badge);
+                title.appendChild(document.createTextNode(`"${token}" ➔ [ ${hira} ]`));
+                block.appendChild(title);
+
+                syllables.forEach(s => {
+                    let candidates = KANJI_DICT[s] || [{k:'？', m:'Unknown'}];
+                    
+                    if (!selectedKanji[index][s]) {
+                        selectedKanji[index][s] = candidates[0].k;
+                    }
+
+                    const subWrapper = document.createElement('div');
+                    subWrapper.className = 'mb-5 last:mb-0 bg-slate-950/60 p-4 rounded-xl border border-slate-800/80 shadow-md';
+                    
+                    const subLabel = document.createElement('div');
+                    subLabel.className = 'text-xs text-slate-400 font-mono mb-3 flex items-center gap-2 select-none';
+                    subLabel.innerHTML = `Sound: <span class="text-emerald-300 font-bold bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-500/20 tracking-wider">${s}</span>`;
+                    subWrapper.appendChild(subLabel);
+                    
+                    const subContainer = document.createElement('div');
+                    subContainer.className = 'grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3';
+                    
+                    candidates.forEach(candObj => {
+                        const cand = candObj.k;
+                        const meaning = candObj.m;
+                        const isSelected = selectedKanji[index][s] === cand;
+
+                        const card = document.createElement('button');
+                        card.className = `flex flex-col items-center justify-center p-3 border rounded-xl transition-all duration-300 text-center w-full cursor-pointer group hover:-translate-y-1 hover:shadow-lg focus:outline-none ${
+                            isSelected 
+                            ? 'border-indigo-400 bg-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.25)] ring-1 ring-indigo-400/50' 
+                            : 'border-slate-700 bg-slate-800/50 hover:border-slate-500 hover:bg-slate-700/80'
+                        }`;
+                        
+                        const kanjiSpan = document.createElement('span');
+                        kanjiSpan.className = `text-2xl font-bold font-serif transition-colors duration-300 ${isSelected ? 'text-amber-400' : 'text-slate-200 group-hover:text-indigo-300'}`;
+                        kanjiSpan.textContent = cand;
+                        card.appendChild(kanjiSpan);
+
+                        const meaningSpan = document.createElement('span');
+                        meaningSpan.className = `text-[11px] mt-1.5 block truncate max-w-full font-medium transition-colors duration-300 ${isSelected ? 'text-indigo-200' : 'text-slate-500 group-hover:text-slate-300'}`;
+                        meaningSpan.textContent = meaning;
+                        card.appendChild(meaningSpan);
+
+                        card.addEventListener('click', () => {
+                            selectedKanji[index][s] = cand;
+                            executePrecisionEngine();
+                        });
+
+                        subContainer.appendChild(card);
+                    });
+                    
+                    subWrapper.appendChild(subContainer);
+                    block.appendChild(subWrapper);
+                });
+
+                characterBlocks.appendChild(block);
+            });
+
+            updateResult(tokens);
+        }
+
+        function updateResult(tokens) {
+            if (!tokens || tokens.length === 0) return;
+            let finalName = "";
+            
+            tokens.forEach((token, index) => {
+                let hira = englishToHiragana(token);
+                let syllables = getSyllables(hira);
+                
+                syllables.forEach(s => {
+                    let selectedK = selectedKanji[index][s];
+                    if (selectedK) finalName += selectedK;
+                });
+            });
+            
+            resultName.textContent = finalName;
+                        
+            // Copyボタンのリセット
+            const btn = document.getElementById('copyBtn');
+            btn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg><span>Copy Name</span>`;
+            btn.className = "flex items-center gap-2 bg-stone-800 hover:bg-stone-700 border border-stone-700 text-stone-200 px-6 py-3 rounded-xl text-sm transition-all duration-300 font-bold shadow-md hover:-translate-y-0.5 cursor-pointer";
+        }
+
+        function copyToClipboard() {
+            const nameToCopy = resultName.textContent;
+            if (!nameToCopy) return;
+            
+            navigator.clipboard.writeText(nameToCopy).then(() => {
+                const btn = document.getElementById('copyBtn');
+                btn.innerHTML = `<svg class="w-4 h-4 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg><span class="text-emerald-100">Copied!</span>`;
+                btn.className = "flex items-center gap-2 bg-emerald-950 border border-emerald-500/30 text-white px-6 py-3 rounded-xl text-sm transition-all duration-300 font-bold shadow-lg shadow-emerald-500/10 cursor-default scale-95";
+                
+                setTimeout(() => {
+                    btn.classList.remove('scale-95');
+                }, 150);
+            });
+        }
+
+        function clearSelection() {
+            selectedKanji = {};
+            executePrecisionEngine();
+        }
+    </script>
+</body>
+</html>
